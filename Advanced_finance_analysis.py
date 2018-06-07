@@ -1,10 +1,14 @@
-# encoding: utf-8
+﻿# encoding: utf-8
 import math
 import requests
 import re
 import sys
 import urllib.request
 import chardet
+import time
+import os
+import os.path
+import platform
 from bs4 import BeautifulSoup
 from operator import attrgetter
 
@@ -26,7 +30,9 @@ class StockInfo:
 
 #Test for jsjustweb
 def evaluate(stockID):
+	
 	print ("股票代號:" + stockID)
+	file.write("股票代號:" + stockID + "\n")
 	meaningful = True
 	# 抓本益比
 	urlforPE = "http://jsjustweb.jihsun.com.tw/z/zc/zca/zca_" + stockID + ".djhtm"
@@ -46,6 +52,7 @@ def evaluate(stockID):
 	if (tds[7].get_text() != "" and tds[7].get_text() != "N/A"):
 		closePrice = float(tds[7].get_text().replace(",", ""))
 	print ("收盤價:" + str(closePrice))
+	file.write("收盤價:" + str(closePrice) + "\n")
 
 	PENoData = False
 	SmallThreshold = 2
@@ -170,9 +177,11 @@ def evaluate(stockID):
 
 		LatestAvgPE = (LatestMaxPE + LatestMinPE)/2
 		print ("預估本益比:" + format(PredictMaxPE, '.2f') + "~" + format(PredictMinPE, '.2f') )
+		file.write("預估本益比:" + format(PredictMaxPE, '.2f') + "~" + format(PredictMinPE, '.2f') + "\n")
 	else:
 		meaningful = False
 		print ("本益比無法預估")
+		file.write("本益比無法預估" + "\n")
 
 	# 預估營收年增率
 	urlforMProfitYoY = "http://jsjustweb.jihsun.com.tw/z/zc/zch/zch_" + stockID + ".djhtm"
@@ -197,6 +206,7 @@ def evaluate(stockID):
 					if float(ProfitMonth) < 0:
 						match = False
 						print ("營收年增率有負值:" +str(ProfitMonth))
+						file.write("營收年增率有負值:" +str(ProfitMonth) + "\n")
 						break;
 					else:
 						ProfitMonthAcc = ProfitMonthAcc + float(ProfitMonth)
@@ -219,9 +229,11 @@ def evaluate(stockID):
 			PredictedProfitMonth = latest_YOY
 
 		print ("預估營收年增率:" + format(PredictedProfitMonth, '.2f'))
+		file.write("預估營收年增率:" + format(PredictedProfitMonth, '.2f') + "\n")
 	else:
 		meaningful = False
 		print ("營收年增率無法正確預估")
+		file.write("營收年增率無法正確預估" + "\n")
 
 	# 預估營收
 	urlforYearEarning = "http://jsjustweb.jihsun.com.tw/z/zc/zcdj_" + stockID + ".djhtm"
@@ -241,15 +253,19 @@ def evaluate(stockID):
 				LastYearEarning = LastYearEarning.replace(",", "")
 				PredictedEarning = float(LastYearEarning)*(1+PredictedProfitMonth/100)
 				print ("預估營收:" + format(PredictedEarning, '.2f'))
+				file.write("預估營收:" + format(PredictedEarning, '.2f') + "\n")
 			else:
 				meaningful = False
 				print ("營收無法正確預估")
+				file.write("營收無法正確預估" + "\n")
 		else:
 			meaningful = False
 			print ("營收無法正確預估")
+			file.write("營收無法正確預估" + "\n")
 	else:
 		meaningful = False
 		print ("營收無法正確預估")
+		file.write("營收無法正確預估" + "\n")
 
 	# 預估稅後淨利率
 	urlforProfitRatio = "http://jsjustweb.jihsun.com.tw/z/zc/zcd_" + stockID + ".djhtm"
@@ -276,6 +292,7 @@ def evaluate(stockID):
 				Income = float(tds[2].get_text().replace(",", ""))
 			else:
 				print ("營收無資料")
+				file.write("營收無資料" + "\n")
 				match = False
 				break;
 
@@ -284,6 +301,7 @@ def evaluate(stockID):
 				NetProfit = float(tds[4].get_text().replace(",", ""))
 			else:
 				print ("稅後淨利無資料")
+				file.write("稅後淨利無資料" + "\n")
 				match = False
 				break;
 
@@ -291,6 +309,7 @@ def evaluate(stockID):
 				ProfitRatio = NetProfit/Income
 			else:
 				print ("營收為0")
+				file.write("營收為0" + "\n")
 				match = False
 				break;
 
@@ -308,19 +327,23 @@ def evaluate(stockID):
 
 				#if (highest > lowest*1.25):
 				#	print ("稅後淨利率高低變化超過25%")
+				#	file.write ("稅後淨利率高低變化超過25%" + "\n")
 				#	match = False
 				#	break;
 			else:
 				print ("稅後淨利率有負數")
+				file.write("稅後淨利率有負數" + "\n")
 				match = False
 				break;
 
 		if match:
 			PredictProfitRatio = ProfitRatioAcc/4
 			print ("預估稅後淨利率:" + format(PredictProfitRatio, '.3f'))
+			file.write("預估稅後淨利率:" + format(PredictProfitRatio, '.3f') + "\n")
 		else:
 			meaningful = False
 			print ("稅後淨利率無法正確預估")
+			file.write("稅後淨利率無法正確預估" + "\n")
 
 	# 抓近兩年EPS
 	EPSNoData = False
@@ -353,31 +376,42 @@ def evaluate(stockID):
 	if meaningful:
 		PredictEPS = PredictedEarning * PredictProfitRatio / capital *10
 		print ("預估EPS:" + format(PredictEPS, '.3f'))
+		file.write("預估EPS:" + format(PredictEPS, '.3f') + "\n")
 		PredictHighestPrice = PredictEPS*PredictMaxPE
 		PredictLowestPrice = PredictEPS*PredictMinPE
 		print ("預估股價高低落點:" + format(PredictHighestPrice, '.2f') + "~" + format(PredictLowestPrice, '.2f'))
+		file.write("預估股價高低落點:" + format(PredictHighestPrice, '.2f') + "~" + format(PredictLowestPrice, '.2f') + "\n")
 
 		PredictEarningRatio = (PredictHighestPrice - closePrice) / closePrice
-		print ("預估報酬率:" + format(PredictEarningRatio, '.5f'))
+		print ("預估報酬率:" + format(PredictEarningRatio, '.2f'))
+		file.write("預估報酬率:" + format(PredictEarningRatio, '.2f') + "\n")
 
 		PredictLossRatio = (PredictLowestPrice - closePrice) / closePrice
-		print ("預估風險:" + format(PredictLossRatio, '.5f'))
+		print ("預估風險:" + format(PredictLossRatio, '.2f'))
+		file.write("預估風險:" + format(PredictLossRatio, '.2f') + "\n")
 
 		RiskEarningRatio = abs(PredictEarningRatio / PredictLossRatio)
 		print ("風險報酬倍數:" + format(RiskEarningRatio, '.2f'))
+		file.write("風險報酬倍數:" + format(RiskEarningRatio, '.2f') + "\n")
 
 		# 計算PEG
 		if (EPSNoData == False and LatestAvgPE > 0 and EPSYoY > 0):
 			PEG = closePrice / PredictEPS / EPSYoY /100
 			print ("PEG:" + format(PEG, '.2f'))
+			file.write("PEG:" + format(PEG, '.2f') + "\n")
+			file.write("============" + "\n")
 		else:
 			PEG = 0
 			print ("PEG無法計算出")
+			file.write("PEG無法計算出" + "\n")
 
 		return StockInfo(stockID, PredictEarningRatio, PredictLossRatio, RiskEarningRatio, closePrice, PredictHighestPrice, PredictLowestPrice, PEG)
 
 	if (int(option) == 2):
 		print ("============")
+		file.write("============" + "\n")
+
+	# file.close()
 	return 0
 
 def calculateAll():
@@ -420,18 +454,40 @@ def calculateAll():
 			print ("LowestPrice:"  + format(result.PredictLowestPrice, '.2f'))
 			print ("PEG:"  + format(result.PEG, '.2f'))
 			print ("============")"""
+
 		SortResult = sorted(Results, reverse=True, key=attrgetter('PredictEarningRatio'))
 
-		for i in range(0,50):
+		for i in range(0,75):
 			print ("StockID:"  + SortResult[i].id)
 			print ("EarningRatio:"  + format(SortResult[i].PredictEarningRatio, '.2f'))
 			print ("============")
+			file.write ("StockID:"  + SortResult[i].id + "\n")
+			file.write ("EarningRatio:"  + format(SortResult[i].PredictEarningRatio, '.2f') + "\n")
+			file.write ("============" + "\n")
 
 	except urllib.error.HTTPError:
 		print ('There was an error with the request')
+		file.write ("There was an error with the request")
 
 	return 0
 	
+def openFiles(stockID):
+	if (platform.system() == "Windows"):
+		desktop = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+	elif (platform.system() == "Linux"):
+		desktop = os.path.join(os.path.join(os.path.expanduser('~')), 'Desktop')
+	save_path = desktop + "/stock_analysis"
+	if not os.path.exists(save_path):
+		os.makedirs(save_path)
+	name_of_file = time.strftime("%Y-%m-%d") + stockID
+	completeName = os.path.join(save_path, name_of_file+".txt")
+	global file
+	file = open(completeName, 'w')
+
+def closeFiles():
+	if not file.closed:
+		file.close()
+
 if __name__ == "__main__":
 	while (True):
 		print ("=========請選擇功能==========")
@@ -447,12 +503,16 @@ if __name__ == "__main__":
 			print ("請輸入股票代碼")
 			id  = input (">>>")
 		
-			if id != "2597" and id != "8081":
+			if id != "2597" and id != "8081" and id != "3711":
+				openFiles("_" + id)
 				evaluate(id)
+				closeFiles()
 			else:
 				print ("不支援該ID")
 		elif (int(option) == 2):
+			openFiles("")
 			Result = calculateAll()
+			closeFiles()
 #def processInput():
  #   x = raw_input(">>> Input: ")
   #  print x
