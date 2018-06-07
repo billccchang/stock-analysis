@@ -374,7 +374,7 @@ def evaluate(stockID):
 		EPSYoY = EPSYearList[0] / EPSYearList[1] -1
 
 	if meaningful:
-		PredictEPS = PredictedEarning * PredictProfitRatio / capital *10
+		PredictEPS = PredictedEarning * PredictProfitRatio *100 / capital *10
 		print ("預估EPS:" + format(PredictEPS, '.3f'))
 		file.write("預估EPS:" + format(PredictEPS, '.3f') + "\n")
 		PredictHighestPrice = PredictEPS*PredictMaxPE
@@ -398,13 +398,15 @@ def evaluate(stockID):
 		if (EPSNoData == False and LatestAvgPE > 0 and EPSYoY > 0):
 			PEG = closePrice / PredictEPS / EPSYoY /100
 			print ("PEG:" + format(PEG, '.2f'))
+			print ("============")
 			file.write("PEG:" + format(PEG, '.2f') + "\n")
 			file.write("============" + "\n")
 		else:
 			PEG = 0
 			print ("PEG無法計算出")
+			print ("============")
 			file.write("PEG無法計算出" + "\n")
-
+			file.write("============" + "\n")
 		return StockInfo(stockID, PredictEarningRatio, PredictLossRatio, RiskEarningRatio, closePrice, PredictHighestPrice, PredictLowestPrice, PEG)
 
 	if (int(option) == 2):
@@ -436,7 +438,7 @@ def calculateAll():
 			else:
 				if (text != "股票"):
 					#print ("stockID:" + text)
-					if text != "2597" and text != "8081":
+					if text != "2597" and text != "8081" and text != "3711" :
 						result = evaluate(text)
 						if (result != 0):
 							Results.append(result)
