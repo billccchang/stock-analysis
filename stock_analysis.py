@@ -17,8 +17,9 @@ headers = {'User-Agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 
 rs = requests.session()
 
 class StockInfo:
-        def __init__(self, id, PredictEarningRatio, PredictLossRatio, RiskEarningRatio, clPrice, PredictHighestPrice, PredictLowestPrice, PEG):
+        def __init__(self, id, name, PredictEarningRatio, PredictLossRatio, RiskEarningRatio, clPrice, PredictHighestPrice, PredictLowestPrice, PEG):
                 self.id = id
+                self.name = name
                 self.PredictEarningRatio = PredictEarningRatio
                 self.PredictLossRatio = PredictLossRatio
                 self.RiskEarningRatio = RiskEarningRatio
@@ -27,7 +28,7 @@ class StockInfo:
                 self.PredictLowestPrice = PredictLowestPrice
                 self.PEG = PEG
         def __repr__(self):
-                return repr((self.id, self.PredictEarningRatio, self.PredictLossRatio, self.RiskEarningRatio, self.clPrice, self.PredictHighestPrice, self.PredictLowestPrice, self.PEG))
+                return repr((self.id, self.name, self.PredictEarningRatio, self.PredictLossRatio, self.RiskEarningRatio, self.clPrice, self.PredictHighestPrice, self.PredictLowestPrice, self.PEG))
 
 
 ###+++6/28 show more info+++###
@@ -197,8 +198,9 @@ def evaluate(stockID):
 
 			break
 #---
+	name = name_tbl
 	print ("股票代號:" + stockID + " " +name_tbl)
-	file.write("股票代號:" + stockID + "\n")
+	file.write("股票代號:" + stockID + " " +name_tbl + "\n")
 	print("營收比重: "+product_radio)
 	file.write("營收比重: "+product_radio+ "\n")
 	meaningful = True
@@ -591,7 +593,7 @@ def evaluate(stockID):
 			print ("============")
 			file.write("PEG無法計算出" + "\n")
 			file.write("============" + "\n")
-		return StockInfo(stockID, PredictEarningRatio, PredictLossRatio, RiskEarningRatio, closePrice, PredictHighestPrice, PredictLowestPrice, PEG)
+		return StockInfo(stockID, name, PredictEarningRatio, PredictLossRatio, RiskEarningRatio, closePrice, PredictHighestPrice, PredictLowestPrice, PEG)
 
 	if (int(option) == 2):
 		print ("============")
@@ -603,6 +605,8 @@ def evaluate(stockID):
 def calculateAll():
 	res = rs.get('http://www.emega.com.tw/js/StockTable.htm', headers = headers)
 	url = "http://isin.twse.com.tw/isin/C_public.jsp?strMode=2"
+	url2 = "http://isin.twse.com.tw/isin/C_public.jsp?strMode=4"
+
 	try:
 		response = urllib.request.urlopen(url)
 		webdata = response.read()
@@ -629,6 +633,37 @@ def calculateAll():
 				#else:
 					#print ("Not invalid ID")
 			i = i + 1
+		
+		response = urllib.request.urlopen(url2)
+		webdata = response.read()
+		sp = BeautifulSoup(webdata.decode('cp950'), "html.parser")
+		response.close()
+
+		tbls = sp.find_all('table', attrs={'border' : '0'})
+		trs = tbls[0].find_all('tr')
+		i = 1
+		mstock_tag = False
+		while i > 0 :
+			tds = trs[i].find_all('td')
+			text = tds[0].get_text().split()[0]
+			if ( text == "臺灣存託憑證"):
+				print ("111:" + text)
+				mstock_tag = False
+				break;
+			else:
+				if ( text == "00744B" ):
+					print ("sttt:" + text)
+					mstock_tag = True
+				elif (text != "股票") and (mstock_tag):
+					print ("stockID:" + text)
+					if text != "2597" and text != "8081" and text != "3711" :
+						result = evaluate(text)
+						if (result != 0):
+							Results.append(result)
+			i = i + 1
+
+
+
 
 		"""for result in Results:
 			print ("StockID:"  + result.id)
@@ -645,10 +680,12 @@ def calculateAll():
 
 		for i in range(0,75):
 			print ("StockID:"  + SortResult[i].id)
+			print ("StockName:" + SortResult[i].name)
 			print ("EarningRatio:"  + format(SortResult[i].PredictEarningRatio, '.2f'))
 			print ("PEG:" + format(SortResult[i].PEG, '.2f'))#add peg
 			print ("============")
 			file.write ("StockID:"  + SortResult[i].id + "\n")
+			file.write ("StockName:" + SortResult[i].name + "\n")
 			file.write ("EarningRatio:"  + format(SortResult[i].PredictEarningRatio, '.2f') + "\n")
 			file.write("PEG:" + format(SortResult[i].PEG, '.2f') + "\n")
 			file.write ("============" + "\n")
